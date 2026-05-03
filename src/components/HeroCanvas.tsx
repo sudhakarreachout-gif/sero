@@ -85,18 +85,15 @@ export default function HeroCanvas() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Scroll Trigger
+  const entranceTl = useRef<gsap.core.Timeline | null>(null);
+
+  // Entrance Animation Setup
   useEffect(() => {
-    if (images.length === 0) return;
-
-    // Initial render of frame 0 if not already done
-    renderFrame(0);
-
     // 2. Word-by-word reveal timeline (paused)
-    const entranceTl = gsap.timeline({ paused: true });
+    const tl = gsap.timeline({ paused: true });
+    entranceTl.current = tl;
     
-    entranceTl
-      .fromTo(canvasRef.current,
+    tl.fromTo(canvasRef.current,
         { filter: "blur(0px) brightness(1)" },
         { filter: "blur(8px) brightness(0.6)", duration: 1.2, ease: "power2.out" },
         0
@@ -143,6 +140,21 @@ export default function HeroCanvas() {
         "-=0.4"
       );
 
+    // Set initial state
+    gsap.set([".hero-word", ".hero-word-italic", "#hero-subtitle", "#hero-tagline", "#hero-ctas", "#main-nav"], { opacity: 0 });
+
+    return () => {
+      tl.kill();
+    };
+  }, []);
+
+  // Scroll Trigger
+  useEffect(() => {
+    if (images.length === 0) return;
+
+    // Initial render of frame 0 if not already done
+    renderFrame(0);
+
     let animationPlayed = false;
 
     // 4. Main Scroll Sequence
@@ -158,14 +170,14 @@ export default function HeroCanvas() {
           renderFrame(frame);
           
           // Trigger word entrance at climax
-          if (self.progress > 0.88) {
+          if (self.progress > 0.75) {
             if (!animationPlayed) {
-              entranceTl.play();
+              entranceTl.current?.play();
               animationPlayed = true;
             }
-          } else if (self.progress < 0.80) {
+          } else if (self.progress < 0.65) {
             if (animationPlayed) {
-              entranceTl.reverse();
+              entranceTl.current?.reverse();
               animationPlayed = false;
             }
           }
@@ -175,7 +187,6 @@ export default function HeroCanvas() {
 
     return () => {
       heroTl.kill();
-      entranceTl.kill();
     };
   }, [images]);
 

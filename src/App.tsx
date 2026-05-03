@@ -229,7 +229,7 @@ function Hero() {
 
           <h1
             id="hero-title"
-            className="font-display mb-6 overflow-hidden flex flex-col items-center opacity-0"
+            className="font-display mb-6 overflow-hidden flex flex-col items-center"
             style={{
               color: '#F5ECD7',
               fontSize: 'clamp(3.5rem, 10vw, 8.5rem)',
@@ -238,28 +238,28 @@ function Hero() {
             }}
           >
             <div className="flex gap-[0.3em] mb-2">
-              <span className="hero-word inline-block opacity-0">Your</span>
-              <span className="hero-word inline-block opacity-0">Ritual</span>
+              <span className="hero-word inline-block">Your</span>
+              <span className="hero-word inline-block">Ritual</span>
             </div>
-            <em className="hero-word-italic italic font-body block mt-2 opacity-0">Starts Here</em>
+            <em className="hero-word-italic italic font-body block mt-2">Starts Here</em>
           </h1>
           <p
             id="hero-subtitle"
-            className="font-body text-sm md:text-lg max-w-xl mx-auto leading-relaxed mb-4 opacity-0"
+            className="font-body text-sm md:text-lg max-w-xl mx-auto leading-relaxed mb-4"
             style={{ color: '#F5ECD7' }}
           >
             Speciality Coffee • Creative Fusions • Warm Vibes in Gachibowli
           </p>
           <p
             id="hero-tagline"
-            className="font-display text-[9px] tracking-[0.4em] uppercase mb-12 opacity-0"
+            className="font-display text-[9px] tracking-[0.4em] uppercase mb-12"
             style={{ color: '#B97343' }}
           >
             Indira Nagar, Gachibowli • Est. 2025
           </p>
           <div
             id="hero-ctas"
-            className="flex flex-col md:flex-row items-center justify-center gap-6 opacity-0"
+            className="flex flex-col md:flex-row items-center justify-center gap-6"
           >
             <a
               href="#digital-menu"
