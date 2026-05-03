@@ -11,6 +11,8 @@ export default function HeroCanvas() {
   const imagesRef = useRef<HTMLImageElement[]>([]);
   const lastFrameRef = useRef(-1);
 
+  const [firstFrameLoaded, setFirstFrameLoaded] = useState(false);
+
   // Preload images
   useEffect(() => {
     const loadedImages: HTMLImageElement[] = [];
@@ -21,19 +23,27 @@ export default function HeroCanvas() {
       img.src = `/assets/hero-seq/frame${i}.jpg`;
       img.onload = () => {
         loadedCount++;
+        
+        // If the first frame loads, render it immediately and update state
+        if (i === 1) {
+          imagesRef.current[0] = img;
+          setFirstFrameLoaded(true);
+          renderFrame(0);
+        }
+
         if (loadedCount === frameCount) {
           setImages(loadedImages);
           imagesRef.current = loadedImages;
           renderFrame(0);
         }
       };
-      loadedImages.push(img);
+      loadedImages[i - 1] = img; // Ensure they are in the correct index
     }
   }, []);
 
   const renderFrame = (index: number) => {
     const safeIndex = Math.max(0, Math.min(frameCount - 1, Math.floor(index)));
-    if (safeIndex === lastFrameRef.current) return;
+    if (safeIndex === lastFrameRef.current && lastFrameRef.current !== -1) return;
     
     const img = imagesRef.current[safeIndex];
     if (!img || !canvasRef.current) return;
@@ -62,28 +72,25 @@ export default function HeroCanvas() {
     lastFrameRef.current = safeIndex;
   };
 
-  // Scroll Trigger
   useEffect(() => {
-    if (images.length === 0) return;
-
     const handleResize = () => {
       if (canvasRef.current) {
         canvasRef.current.width = window.innerWidth * window.devicePixelRatio;
         canvasRef.current.height = window.innerHeight * window.devicePixelRatio;
-        renderFrame(lastFrameRef.current);
+        renderFrame(lastFrameRef.current === -1 ? 0 : lastFrameRef.current);
       }
     };
-    window.addEventListener('resize', handleResize);
     handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
-    // 1. Entrance Timeline for Navigation
-    gsap.to("#main-nav", {
-      y: 0,
-      opacity: 1,
-      duration: 1.2,
-      ease: "power3.out",
-      delay: 0.5
-    });
+  // Scroll Trigger
+  useEffect(() => {
+    if (images.length === 0) return;
+
+    // Initial render of frame 0 if not already done
+    renderFrame(0);
 
     // 2. Word-by-word reveal timeline (paused)
     const entranceTl = gsap.timeline({ paused: true });
@@ -91,59 +98,50 @@ export default function HeroCanvas() {
     entranceTl
       .fromTo(canvasRef.current,
         { filter: "blur(0px) brightness(1)" },
-        { filter: "blur(12px) brightness(0.6)", duration: 1.5, ease: "power2.out" },
+        { filter: "blur(8px) brightness(0.6)", duration: 1.2, ease: "power2.out" },
         0
+      )
+      .fromTo("#main-nav",
+        { y: -20, opacity: 0 },
+        { y: 0, opacity: 1, duration: 1, ease: "power3.out" },
+        0.2
       )
       .fromTo(".hero-word", 
         { y: 20, opacity: 0 },
         { 
           y: 0, 
           opacity: 1, 
-          duration: 0.8, 
-          stagger: 0.15, 
+          duration: 0.6, 
+          stagger: 0.1, 
           ease: "expo.out" 
         },
-        0
+        0.1
       )
       .fromTo(".hero-word-italic", 
         { y: 20, opacity: 0 },
         { 
           y: 0, 
           opacity: 1, 
-          duration: 0.8, 
+          duration: 0.6, 
           ease: "expo.out" 
         }, 
-        "-=0.55"
+        "-=0.4"
       )
       .fromTo("#hero-subtitle", 
         { opacity: 0, y: 15 },
-        { opacity: 1, y: 0, duration: 1, ease: "power2.out" }, 
+        { opacity: 1, y: 0, duration: 0.8, ease: "power2.out" }, 
         "-=0.2"
       )
       .fromTo("#hero-tagline", 
         { opacity: 0, y: 15 },
-        { opacity: 1, y: 0, duration: 1, ease: "power2.out" }, 
-        "-=0.8"
+        { opacity: 1, y: 0, duration: 0.8, ease: "power2.out" }, 
+        "-=0.6"
       )
       .fromTo("#hero-ctas", 
         { opacity: 0, y: 20 },
-        { opacity: 1, y: 0, duration: 0.8, ease: "power2.out" }, 
-        "+=0.2"
+        { opacity: 1, y: 0, duration: 0.7, ease: "power2.out" }, 
+        "-=0.4"
       );
-
-    // 3. Looping Steam Animation
-    const steamTl = gsap.timeline({ repeat: -1, paused: true });
-    steamTl.to(".steam-particle", {
-      y: -60,
-      x: "random(-20, 20)",
-      opacity: (i) => [0, 0.4, 0][i],
-      duration: "random(2, 4)",
-      stagger: {
-        each: 0.5,
-        repeat: -1
-      },
-      ease: "power1.out"
-    });
 
     let animationPlayed = false;
 
@@ -171,24 +169,13 @@ export default function HeroCanvas() {
               animationPlayed = false;
             }
           }
-
-          // Trigger steam
-          if (self.progress > 0.92) {
-            steamTl.play();
-            gsap.to(".steam-particle", { opacity: 0.3, duration: 0.5 });
-          } else {
-            steamTl.pause();
-            gsap.to(".steam-particle", { opacity: 0, duration: 0.5 });
-          }
         }
       }
     });
 
     return () => {
-      window.removeEventListener('resize', handleResize);
       heroTl.kill();
       entranceTl.kill();
-      steamTl.kill();
     };
   }, [images]);
 
@@ -198,7 +185,13 @@ export default function HeroCanvas() {
         ref={canvasRef}
         width={window.innerWidth * window.devicePixelRatio}
         height={window.innerHeight * window.devicePixelRatio}
-        className="w-full h-full object-cover"
+        className="w-full h-full object-cover transition-opacity duration-1000"
+        style={{ 
+          backgroundImage: 'url(/assets/hero-seq/frame1.jpg)', 
+          backgroundSize: 'cover', 
+          backgroundPosition: 'center',
+          opacity: firstFrameLoaded ? 1 : 0
+        }}
       />
       <div className="absolute inset-0 bg-gradient-to-b from-[#1C110A]/40 via-transparent to-[#1C110A]/60" />
     </div>

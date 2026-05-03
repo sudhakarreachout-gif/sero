@@ -225,31 +225,11 @@ function Hero() {
 
       <div id="hero-content" className="absolute inset-0 z-10 flex flex-col items-center justify-center text-center pointer-events-none">
         <div className="pointer-events-auto relative">
-          {/* Subtle Steam Particles */}
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 pointer-events-none overflow-visible">
-            {[...Array(3)].map((_, i) => (
-              <svg
-                key={i}
-                className="steam-particle absolute left-1/2 top-0 opacity-0"
-                width="40"
-                height="80"
-                viewBox="0 0 40 80"
-                style={{ marginLeft: `${(i - 1) * 20}px` }}
-              >
-                <path
-                  d="M20 80C20 80 40 60 40 40C40 20 20 20 20 0"
-                  stroke="rgba(245,236,215,0.15)"
-                  strokeWidth="2"
-                  fill="none"
-                  strokeLinecap="round"
-                />
-              </svg>
-            ))}
-          </div>
+
 
           <h1
             id="hero-title"
-            className="font-display mb-6 overflow-hidden flex flex-col items-center"
+            className="font-display mb-6 overflow-hidden flex flex-col items-center opacity-0"
             style={{
               color: '#F5ECD7',
               fontSize: 'clamp(3.5rem, 10vw, 8.5rem)',
@@ -258,15 +238,15 @@ function Hero() {
             }}
           >
             <div className="flex gap-[0.3em] mb-2">
-              <span className="hero-word inline-block">Your</span>
-              <span className="hero-word inline-block">Ritual</span>
+              <span className="hero-word inline-block opacity-0">Your</span>
+              <span className="hero-word inline-block opacity-0">Ritual</span>
             </div>
-            <em className="hero-word-italic italic font-body block mt-2">Starts Here</em>
+            <em className="hero-word-italic italic font-body block mt-2 opacity-0">Starts Here</em>
           </h1>
           <p
             id="hero-subtitle"
             className="font-body text-sm md:text-lg max-w-xl mx-auto leading-relaxed mb-4 opacity-0"
-            style={{ color: '#F5ECD7', opacity: 0.8 }}
+            style={{ color: '#F5ECD7' }}
           >
             Speciality Coffee • Creative Fusions • Warm Vibes in Gachibowli
           </p>
