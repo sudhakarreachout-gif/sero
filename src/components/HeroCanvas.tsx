@@ -203,13 +203,13 @@ const HeroCanvas = React.memo(function HeroCanvas() {
         fastScrollEnd: true,
         preventOverlaps: true,
         onUpdate: (self) => {
-          // Trigger text animation much earlier as requested (frame ~30-40)
-          if (self.progress > 0.15) {
+          // Trigger text animation only for the final frames (starting around frame 133)
+          if (self.progress > 0.88) {
             if (!animationPlayed) {
               entranceTl.current?.play();
               animationPlayed = true;
             }
-          } else if (self.progress < 0.05) {
+          } else if (self.progress < 0.82) {
             if (animationPlayed) {
               entranceTl.current?.reverse();
               animationPlayed = false;
