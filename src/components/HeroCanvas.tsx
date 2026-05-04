@@ -3,93 +3,128 @@ import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
 gsap.registerPlugin(ScrollTrigger);
+ScrollTrigger.config({ limitCallbacks: true, ignoreMobileResize: true });
 
-export default function HeroCanvas() {
+const HeroCanvas = React.memo(function HeroCanvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const ctxRef = useRef<CanvasRenderingContext2D | null>(null);
+  const bitmapCacheRef = useRef<ImageBitmap[]>([]);
   const [images, setImages] = useState<HTMLImageElement[]>([]);
-  const frameCount = 120;
+  const frameCount = 150;
   const imagesRef = useRef<HTMLImageElement[]>([]);
   const lastFrameRef = useRef(-1);
+  const dimensionsRef = useRef({ width: 0, height: 0, drawX: 0, drawY: 0, drawWidth: 0, drawHeight: 0 });
 
   const [firstFrameLoaded, setFirstFrameLoaded] = useState(false);
 
   // Preload images
   useEffect(() => {
-    const loadedImages: HTMLImageElement[] = [];
-    let loadedCount = 0;
+    let isMounted = true;
 
-    for (let i = 1; i <= frameCount; i++) {
+    const loadFrame = async (i: number) => {
+      if (!isMounted) return;
       const img = new Image();
-      img.src = `/assets/hero-seq/frame${i}.jpg`;
-      img.onload = () => {
-        loadedCount++;
-        
-        // If the first frame loads, render it immediately and update state
-        if (i === 1) {
-          imagesRef.current[0] = img;
-          setFirstFrameLoaded(true);
-          renderFrame(0);
-        }
+      img.src = `/assets/hero-seq-small/frame${i}.jpg`;
+      try {
+        await img.decode();
+        if (!isMounted) return;
+        imagesRef.current[i - 1] = img;
 
-        if (loadedCount === frameCount) {
-          setImages(loadedImages);
-          imagesRef.current = loadedImages;
-          renderFrame(0);
+        // Pre-create GPU bitmap immediately after decode
+        const bitmap = await createImageBitmap(img);
+        if (!isMounted) return;
+        bitmapCacheRef.current[i - 1] = bitmap;
+
+        if (i === 1) {
+          if (!ctxRef.current && canvasRef.current) {
+            ctxRef.current = canvasRef.current.getContext('2d', { alpha: false });
+          }
+          setFirstFrameLoaded(true);
+          // Small delay to ensure dimensions are ready
+          setTimeout(() => renderFrame(0), 10);
         }
-      };
-      loadedImages[i - 1] = img; // Ensure they are in the correct index
-    }
+      } catch (err) {
+        console.error(`Failed to load frame ${i}:`, err);
+      }
+    };
+
+    const loadAll = async () => {
+      // First 40 frames in parallel — covers fast early scrolls
+      await Promise.all(Array.from({ length: 40 }, (_, i) => loadFrame(i + 1)));
+      if (!isMounted) return;
+      // BACKGROUND BATCH: Load remaining frames in parallel chunks of 30
+      const remaining = Array.from({ length: frameCount - 40 }, (_, i) => i + 41);
+      for (let i = 0; i < remaining.length; i += 30) {
+        if (!isMounted) break;
+        await Promise.all(remaining.slice(i, i + 30).map(loadFrame));
+      }
+
+      if (isMounted) setImages([...imagesRef.current]);
+    };
+
+    loadAll();
+    return () => { isMounted = false; };
   }, []);
 
   const renderFrame = (index: number) => {
     const safeIndex = Math.max(0, Math.min(frameCount - 1, Math.floor(index)));
-    if (safeIndex === lastFrameRef.current && lastFrameRef.current !== -1) return;
-    
-    const img = imagesRef.current[safeIndex];
-    if (!img || !canvasRef.current) return;
-    
-    const ctx = canvasRef.current.getContext('2d', { alpha: false });
-    if (!ctx) return;
+    if (safeIndex === lastFrameRef.current) return;
 
-    const canvas = canvasRef.current;
-    const imgRatio = img.width / img.height;
-    const canvasRatio = canvas.width / canvas.height;
-    let drawWidth, drawHeight, drawX, drawY;
+    const ctx = ctxRef.current;
+    if (!ctx || !canvasRef.current) return;
 
-    if (imgRatio > canvasRatio) {
-      drawHeight = canvas.height;
-      drawWidth = canvas.height * imgRatio;
-      drawX = (canvas.width - drawWidth) / 2;
-      drawY = 0;
-    } else {
-      drawWidth = canvas.width;
-      drawHeight = canvas.width / imgRatio;
-      drawX = 0;
-      drawY = (canvas.height - drawHeight) / 2;
+    const bitmap = bitmapCacheRef.current[safeIndex];
+    if (bitmap) {
+      const { drawX, drawY, drawWidth, drawHeight } = dimensionsRef.current;
+      ctx.drawImage(bitmap, drawX, drawY, drawWidth, drawHeight);
+      lastFrameRef.current = safeIndex;
     }
-
-    ctx.drawImage(img, drawX, drawY, drawWidth, drawHeight);
-    lastFrameRef.current = safeIndex;
   };
 
   useEffect(() => {
     const handleResize = () => {
       if (canvasRef.current) {
-        canvasRef.current.width = window.innerWidth * window.devicePixelRatio;
-        canvasRef.current.height = window.innerHeight * window.devicePixelRatio;
+        const dpr = Math.min(window.devicePixelRatio, 2);
+        const width = window.innerWidth * dpr;
+        const height = window.innerHeight * dpr;
+        
+        canvasRef.current.width = width;
+        canvasRef.current.height = height;
+
+        if (ctxRef.current) {
+          ctxRef.current.imageSmoothingEnabled = true;
+          ctxRef.current.imageSmoothingQuality = 'high';
+        }
+
+        const img = imagesRef.current[0] || { width: 1920, height: 1080 };
+        const imgRatio = img.width / img.height;
+        const canvasRatio = width / height;
+        
+        let dWidth, dHeight, dX, dY;
+        if (imgRatio > canvasRatio) {
+          dHeight = height;
+          dWidth = height * imgRatio;
+          dX = (width - dWidth) / 2;
+          dY = 0;
+        } else {
+          dWidth = width;
+          dHeight = width / imgRatio;
+          dX = 0;
+          dY = (height - dHeight) / 2;
+        }
+
+        dimensionsRef.current = { width, height, drawX: dX, drawY: dY, drawWidth: dWidth, drawHeight: dHeight };
         renderFrame(lastFrameRef.current === -1 ? 0 : lastFrameRef.current);
       }
     };
     handleResize();
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const entranceTl = useRef<gsap.core.Timeline | null>(null);
 
-  // Entrance Animation Setup
   useEffect(() => {
-    // 2. Word-by-word reveal timeline (paused)
     const tl = gsap.timeline({ paused: true });
     entranceTl.current = tl;
     
@@ -140,7 +175,6 @@ export default function HeroCanvas() {
         "-=0.4"
       );
 
-    // Set initial state
     gsap.set([".hero-word", ".hero-word-italic", "#hero-subtitle", "#hero-tagline", "#hero-ctas", "#main-nav"], { opacity: 0 });
 
     return () => {
@@ -148,39 +182,45 @@ export default function HeroCanvas() {
     };
   }, []);
 
-  // Scroll Trigger
   useEffect(() => {
-    if (images.length === 0) return;
+    // Start scroll animation once we have at least the first 30 frames
+    if (images.filter(Boolean).length < 30) return;
 
-    // Initial render of frame 0 if not already done
     renderFrame(0);
 
     let animationPlayed = false;
-
-    // 4. Main Scroll Sequence
-    const heroTl = gsap.timeline({
+    const playhead = { frame: 0 };
+    
+    const heroTl = gsap.to(playhead, {
+      frame: frameCount - 1,
+      ease: "none",
       scrollTrigger: {
         trigger: "#hero-section",
         start: "top top",
-        end: "+=5000",
+        end: "+=3000",
         pin: true,
-        scrub: 1.5, // Buttery smoothness
+        scrub: true,
+        fastScrollEnd: true,
+        preventOverlaps: true,
         onUpdate: (self) => {
-          const frame = Math.floor(self.progress * (frameCount - 1));
-          renderFrame(frame);
-          
-          // Trigger word entrance at climax
-          if (self.progress > 0.75) {
+          // Trigger text animation much earlier as requested (frame ~30-40)
+          if (self.progress > 0.15) {
             if (!animationPlayed) {
               entranceTl.current?.play();
               animationPlayed = true;
             }
-          } else if (self.progress < 0.65) {
+          } else if (self.progress < 0.05) {
             if (animationPlayed) {
               entranceTl.current?.reverse();
               animationPlayed = false;
             }
           }
+        }
+      },
+      onUpdate: () => {
+        const targetFrame = Math.floor(playhead.frame);
+        if (targetFrame !== lastFrameRef.current) {
+          renderFrame(playhead.frame);
         }
       }
     });
@@ -198,13 +238,17 @@ export default function HeroCanvas() {
         height={window.innerHeight * window.devicePixelRatio}
         className="w-full h-full object-cover transition-opacity duration-1000"
         style={{ 
-          backgroundImage: 'url(/assets/hero-seq/frame1.jpg)', 
+          backgroundImage: 'url(/assets/hero-seq-small/frame1.jpg)', 
           backgroundSize: 'cover', 
           backgroundPosition: 'center',
-          opacity: firstFrameLoaded ? 1 : 0
+          opacity: firstFrameLoaded ? 1 : 0,
+          willChange: 'transform',
+          transform: 'translateZ(0)',
         }}
       />
       <div className="absolute inset-0 bg-gradient-to-b from-[#1C110A]/40 via-transparent to-[#1C110A]/60" />
     </div>
   );
-}
+});
+
+export default HeroCanvas;
