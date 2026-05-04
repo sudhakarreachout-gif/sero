@@ -88,7 +88,16 @@ function Nav() {
     };
   }, [mobileMenuOpen]);
 
-  const navLinks = ['Home', 'Menu', 'Fusion Fridays', 'Experiences', 'The Space', 'Visit Us', 'Journal'];
+  const navLinks = [
+    { name: 'Home', href: '#hero-section' },
+    { name: 'The Craft', href: '#cocktail-section' },
+    { name: 'Menu', href: '#digital-menu' },
+    { name: 'Food', href: '#food-grid' },
+    { name: 'Fusion Fridays', href: '#fusion-fridays' },
+    { name: 'Experiences', href: '#experiences' },
+    { name: 'The Space', href: '#the-space' },
+    { name: 'Visit Us', href: '#visit-us' },
+  ];
 
   return (
     <>
@@ -121,11 +130,11 @@ function Nav() {
           <div className="hidden lg:flex items-center gap-10">
             {navLinks.map((item) => (
               <a
-                key={item}
-                href={`#${item.toLowerCase().replace(' ', '-')}`}
+                key={item.name}
+                href={item.href}
                 className="font-display text-[10px] tracking-[0.4em] uppercase text-[#F5ECD7]/60 hover:text-[#F5ECD7] transition-all duration-500 relative group"
               >
-                {item}
+                {item.name}
                 <span className="absolute -bottom-1 left-0 w-0 h-px bg-[#C88555] transition-all duration-500 group-hover:w-full" />
               </a>
             ))}
@@ -140,7 +149,7 @@ function Nav() {
               </svg>
             </a>
             <a
-              href="#visit-us"
+              href="#digital-menu"
               className="premium-button font-display text-[10px] tracking-[0.3em] uppercase px-8 py-3 bg-[#B97343] text-[#1C110A]"
             >
               Order Now
@@ -177,8 +186,8 @@ function Nav() {
         <div className="flex flex-col items-center gap-8 text-center mt-12">
           {navLinks.map((item, i) => (
             <a
-              key={item}
-              href={`#${item.toLowerCase().replace(' ', '-')}`}
+              key={item.name}
+              href={item.href}
               className="font-display text-4xl transition-colors duration-300 hover:text-[#B97343]"
               style={{ 
                 color: '#F5ECD7',
@@ -188,11 +197,11 @@ function Nav() {
               }}
               onClick={() => setMobileMenuOpen(false)}
             >
-              {item}
+              {item.name}
             </a>
           ))}
           <a
-            href="#visit-us"
+            href="#digital-menu"
             className="font-display text-[10px] tracking-[0.3em] uppercase px-12 py-5 mt-10 bg-[#B97343] text-[#1C110A]"
             style={{ 
               transform: mobileMenuOpen ? 'translateY(0)' : 'translateY(20px)',
@@ -366,7 +375,7 @@ function FoodGrid() {
   }, []);
 
   return (
-    <section className="py-28 px-8" style={{ background: '#1C110A' }}>
+    <section id="food-grid" className="py-28 px-8" style={{ background: '#1C110A' }}>
       <div className="max-w-7xl mx-auto">
         <div className="mb-20" data-reveal>
           <p className="font-body text-xs tracking-widest uppercase mb-4" style={{ color: '#B97343' }}>
@@ -727,7 +736,17 @@ function Footer() {
 function OurStorySection() {
   return (
     <section id="about" className="relative py-40 px-8 overflow-hidden" style={{ background: '#1C110A' }}>
-      <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-32 items-center">
+      {/* Background Video */}
+      <video 
+        autoPlay 
+        muted 
+        playsInline 
+        className="absolute inset-0 w-full h-full object-cover opacity-[0.52] pointer-events-none"
+      >
+        <source src="/coffe_beans.mp4" type="video/mp4" />
+      </video>
+
+      <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-32 items-center relative z-10">
         <div data-reveal>
           <div className="flex items-center gap-4 mb-8">
             <div className="w-12 h-px bg-[#C88555]/40" />
