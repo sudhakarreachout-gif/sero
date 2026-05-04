@@ -51,6 +51,15 @@ const foodItems = [
 function useScrollReveal() {
   useEffect(() => {
     const els = document.querySelectorAll('[data-reveal]');
+    
+    // Hide preloader
+    const preloader = document.getElementById('preloader');
+    if (preloader) {
+      setTimeout(() => {
+        preloader.classList.add('hidden');
+      }, 500);
+    }
+
     const obs = new IntersectionObserver(
       (entries) => {
         entries.forEach((e) => {
